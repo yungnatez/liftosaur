@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { testSupabaseInsert } from "./supabaseTest";
-testSupabaseInsert();
 
 import { h, render } from "preact";
 import RB from "rollbar";
