@@ -37,6 +37,7 @@ import { ModalDayFromAdhoc } from "./modalDayFromAdhoc";
 import { ImagePreloader } from "../utils/imagePreloader";
 import { n } from "../utils/math";
 import { Muscle } from "../models/muscle";
+import { supabase } from "../supabaseClient"; // ⬅️ use the same client that worked for TEST_ENTRY
 
 interface IProps {
   history: IHistoryRecord[];
@@ -55,12 +56,20 @@ export function ScreenFinishDay(props: IProps): JSX.Element {
   const startedEntries = History.getStartedEntries(record);
   const totalReps = History.totalRecordReps(record);
   const totalSets = History.totalRecordSets(record);
-  const [syncToAppleHealth, setSyncToAppleHealth] = useState(!!props.settings.appleHealthSyncWorkout);
-  const [syncToGoogleHealth, setSyncToGoogleHealth] = useState(!!props.settings.googleHealthSyncWorkout);
+  const [syncToAppleHealth, setSyncToAppleHealth] = useState(
+    !!props.settings.appleHealthSyncWorkout
+  );
+  const [syncToGoogleHealth, setSyncToGoogleHealth] = useState(
+    !!props.settings.googleHealthSyncWorkout
+  );
 
-  const historyCollector = Collector.build([record]).addFn(History.collectMuscleGroups(props.settings));
+  const historyCollector = Collector.build([record]).addFn(
+    History.collectMuscleGroups(props.settings)
+  );
   const [muscleGroupsData] = historyCollector.run();
-  const muscleGroups = ObjectUtils.keys(muscleGroupsData).reduce<[IScreenMuscle, number][]>((memo, mg) => {
+  const muscleGroups = ObjectUtils.keys(muscleGroupsData).reduce<
+    [IScreenMuscle, number][]
+  >((memo, mg) => {
     const values = muscleGroupsData[mg];
     if (values[2][0] > 0 && mg !== "total") {
       memo.push([mg, values[2][0]]);
@@ -68,13 +77,24 @@ export function ScreenFinishDay(props: IProps): JSX.Element {
     return memo;
   }, []);
   muscleGroups.sort((a, b) => b[1] - a[1]);
-  const muscleGroupsGrouped = CollectionUtils.splitIntoNGroups(muscleGroups, 2);
+  const muscleGroupsGrouped = CollectionUtils.splitIntoNGroups(
+    muscleGroups,
+    2
+  );
   const [showCreateProgramDay, setShowCreateProgramDay] = useState(false);
-  const eligibleForCreateProgramDay = props.navCommon.allPrograms.every((p) => p.id !== record.programId);
+  const eligibleForCreateProgramDay = props.navCommon.allPrograms.every(
+    (p) => p.id !== record.programId
+  );
 
   return (
     <Surface
-      navbar={<NavbarView dispatch={props.dispatch} navCommon={props.navCommon} title="Congratulations!" />}
+      navbar={
+        <NavbarView
+          dispatch={props.dispatch}
+          navCommon={props.navCommon}
+          title="Congratulations!"
+        />
+      }
       addons={
         <Fragment>
           {showCreateProgramDay && (
@@ -95,31 +115,45 @@ export function ScreenFinishDay(props: IProps): JSX.Element {
       <section className="px-4 text-sm">
         <div className="flex items-center justify-center pb-2">
           <div>
-            <img src={ImagePreloader.dynohappy} className="block" style={{ width: 170, height: 150 }} />
+            <img
+              src={ImagePreloader.dynohappy}
+              className="block"
+              style={{ width: 170, height: 150 }}
+            />
           </div>
         </div>
         <section className="px-4 pb-2 text-center">
-          <div className="text-sm text-text-secondary">{record.programName}</div>
+          <div className="text-sm text-text-secondary">
+            {record.programName}
+          </div>
           <div className="text-base">{record.dayName}</div>
         </section>
-        <div className="px-4 pt-2 pb-3 rounded-lg bg-background-purpledark" data-cy="totals-summary">
+        <div
+          className="px-4 pt-2 pb-3 rounded-lg bg-background-purpledark"
+          data-cy="totals-summary"
+        >
           <GroupHeader name="Totals" />
           <div className="flex gap-2">
             <ul className="flex-1">
               <li>
                 <span className="mr-1">🕐</span> Time:{" "}
-                <strong>{TimeUtils.formatHHMM(History.workoutTime(record))} h</strong>
+                <strong>
+                  {TimeUtils.formatHHMM(History.workoutTime(record))} h
+                </strong>
               </li>
               <li>
-                <span className="mr-1">🏋</span> Volume: <strong>{Weight.display(totalWeight)}</strong>
+                <span className="mr-1">🏋</span> Volume:{" "}
+                <strong>{Weight.display(totalWeight)}</strong>
               </li>
             </ul>
             <ul className="flex-1">
               <li>
-                <span className="mr-1">💪</span> Sets: <strong>{totalSets}</strong>
+                <span className="mr-1">💪</span> Sets:{" "}
+                <strong>{totalSets}</strong>
               </li>
               <li>
-                <span className="mr-1">🔄</span> Reps: <strong>{totalReps}</strong>
+                <span className="mr-1">🔄</span> Reps:{" "}
+                <strong>{totalReps}</strong>
               </li>
             </ul>
           </div>
@@ -127,7 +161,10 @@ export function ScreenFinishDay(props: IProps): JSX.Element {
 
         {startedEntries.length > 0 ? (
           <>
-            <div className="px-4 py-2 mt-2 rounded-lg bg-background-purpledark" data-cy="completed-exercises">
+            <div
+              className="px-4 py-2 mt-2 rounded-lg bg-background-purpledark"
+              data-cy="completed-exercises"
+            >
               <GroupHeader name="Exercises" />
               {startedEntries.map((entry, i) => {
                 return (
@@ -146,7 +183,10 @@ export function ScreenFinishDay(props: IProps): JSX.Element {
           <></>
         )}
 
-        <div data-cy="sets-per-muscle-group" className="px-4 py-2 mt-2 rounded-lg bg-background-purpledark">
+        <div
+          data-cy="sets-per-muscle-group"
+          className="px-4 py-2 mt-2 rounded-lg bg-background-purpledark"
+        >
           <GroupHeader name="Sets per muscle group" />
           <div className="flex gap-4">
             {muscleGroupsGrouped.map((group) => {
@@ -155,7 +195,8 @@ export function ScreenFinishDay(props: IProps): JSX.Element {
                   {group.map(([mg, value]) => {
                     return (
                       <li>
-                        {Muscle.getMuscleGroupName(mg, props.settings)}: <strong>{n(value)}</strong>
+                        {Muscle.getMuscleGroupName(mg, props.settings)}:{" "}
+                        <strong>{n(value)}</strong>
                       </li>
                     );
                   })}
@@ -166,14 +207,26 @@ export function ScreenFinishDay(props: IProps): JSX.Element {
         </div>
 
         <section className="px-4 py-4 mt-4">
-          <PersonalRecords prs={allPrs} historyRecords={[record]} settings={props.settings} />
+          <PersonalRecords
+            prs={allPrs}
+            historyRecords={[record]}
+            settings={props.settings}
+          />
         </section>
 
         {(SendMessage.isIos() && SendMessage.iosAppVersion() >= 11) ||
         (SendMessage.isAndroid() && SendMessage.androidAppVersion() >= 20) ? (
-          <MobileShare userId={props.userId} history={props.history} settings={props.settings} />
+          <MobileShare
+            userId={props.userId}
+            history={props.history}
+            settings={props.settings}
+          />
         ) : (
-          <WebappShare userId={props.userId} history={props.history} settings={props.settings} />
+          <WebappShare
+            userId={props.userId}
+            history={props.history}
+            settings={props.settings}
+          />
         )}
 
         {HealthSync.eligibleForAppleHealth() && (
@@ -202,7 +255,9 @@ export function ScreenFinishDay(props: IProps): JSX.Element {
         )}
 
         {eligibleForCreateProgramDay && (
-          <div className="mx-2 my-1 text-xs text-text-secondary">You can create a program day from this workout</div>
+          <div className="mx-2 my-1 text-xs text-text-secondary">
+            You can create a program day from this workout
+          </div>
         )}
 
         <div className="flex w-full gap-4 pt-4">
@@ -228,12 +283,115 @@ export function ScreenFinishDay(props: IProps): JSX.Element {
               kind="purple"
               className="w-36"
               data-cy="finish-day-continue"
-              onClick={() => {
+              onClick={async () => {
+                try {
+                  // 🔍 See the raw data in devtools so we can tweak mapping later if needed
+                  console.log("SUPABASE FINISH DEBUG record", record);
+                  console.log(
+                    "SUPABASE FINISH DEBUG startedEntries",
+                    startedEntries
+                  );
+
+                  // Normalize date to YYYY-MM-DD
+                  const rawDate: any =
+                    (record as any).dateStr ??
+                    (record as any).date ??
+                    new Date();
+                  const workoutDateStr =
+                    typeof rawDate === "string"
+                      ? rawDate
+                      : new Date(rawDate).toISOString().slice(0, 10);
+
+                  // Insert one row per set per exercise
+                  for (const entryAny of startedEntries as any[]) {
+                    const entry = entryAny || {};
+
+                    const exerciseName =
+                      entry.exerciseName ||
+                      entry.name ||
+                      entry.displayName ||
+                      entry.exercise?.name ||
+                      entry.exercise?.displayName ||
+                      entry.exercise?.customName ||
+                      entry.exercise?.title ||
+                      entry.exercise?.label ||
+                      "Unknown exercise";
+
+                    const rawSets: any[] =
+                      entry.sets || entry.series || entry.setList || [];
+
+                    let setNum = 1;
+                    for (const setAny of rawSets) {
+                      const set = setAny || {};
+
+                      let reps =
+                        set.reps ??
+                        set.completedReps ??
+                        set.r ??
+                        set.repsPlanned ??
+                        0;
+
+                      let weightRaw =
+                        set.weight ??
+                        set.weightKg ??
+                        set.weight_kg ??
+                        set.kg ??
+                        set.load ??
+                        0;
+
+                      if (
+                        typeof weightRaw === "object" &&
+                        weightRaw !== null
+                      ) {
+                        weightRaw =
+                          weightRaw.value ??
+                          weightRaw.kg ??
+                          weightRaw.amount ??
+                          0;
+                      }
+
+                      const rpe =
+                        set.rpe ??
+                        set.rpeScore ??
+                        set.intensity ??
+                        undefined;
+
+                      const { error } = await supabase
+                        .from("lifts")
+                        .insert({
+                          date: workoutDateStr,
+                          exercise: String(exerciseName),
+                          set_number: setNum,
+                          reps: Number(reps) || 0,
+                          weight_kg: Number(weightRaw) || 0,
+                          rpe:
+                            rpe !== undefined && rpe !== null
+                              ? Number(rpe)
+                              : null,
+                        });
+
+                      if (error) {
+                        console.error(
+                          "Supabase lift insert error:",
+                          error
+                        );
+                      }
+
+                      setNum++;
+                    }
+                  }
+                } catch (e) {
+                  console.error("Error logging workout to Supabase", e);
+                }
+
+                // Original behaviour unchanged
                 SendMessage.toIosAndAndroid({
                   type: "finishWorkout",
                   healthSync:
-                    (HealthSync.eligibleForAppleHealth() && syncToAppleHealth) ||
-                    (HealthSync.eligibleForGoogleHealth() && syncToGoogleHealth)
+                    (HealthSync.eligibleForAppleHealth() &&
+                      syncToAppleHealth) ||
+                    (HealthSync.eligibleForGoogleHealth() &&
+                      syncToGoogleHealth)
                       ? "true"
                       : "false",
                   calories: `${History.calories(record)}`,
@@ -262,7 +420,9 @@ interface IMobileShareProps {
 
 function MobileShare(props: IMobileShareProps): JSX.Element {
   const [isShareShown, setIsShareShown] = useState<boolean>(false);
-  const [shareType, setShareType] = useState<"tiktok" | "igstory" | "igfeed">("igstory");
+  const [shareType, setShareType] = useState<
+    "tiktok" | "igstory" | "igfeed"
+  >("igstory");
 
   return (
     <div>
@@ -320,7 +480,10 @@ function MobileShare(props: IMobileShareProps): JSX.Element {
             name="copy-workout-link"
             onClick={() => {
               if (props.userId) {
-                const link = Share.generateLink(props.userId, props.history[0].id);
+                const link = Share.generateLink(
+                  props.userId,
+                  props.history[0].id
+                );
                 ClipboardUtils.copy(link);
                 alert("Copied!");
               } else {
@@ -332,7 +495,11 @@ function MobileShare(props: IMobileShareProps): JSX.Element {
           </LinkButton>
         </div>
       </div>
-      <BottomSheet isHidden={!isShareShown} onClose={() => setIsShareShown(false)} shouldShowClose={true}>
+      <BottomSheet
+        isHidden={!isShareShown}
+        onClose={() => setIsShareShown(false)}
+        shouldShowClose={true}
+      >
         <WorkoutSocialShareSheet
           history={props.history}
           type={shareType}
@@ -352,7 +519,9 @@ interface IWebappShareProps {
 }
 
 function WebappShare(props: IWebappShareProps): JSX.Element {
-  const [copiedLink, setCopiedLink] = useState<string | undefined>(undefined);
+  const [copiedLink, setCopiedLink] = useState<string | undefined>(
+    undefined
+  );
   const userId = props.userId;
 
   return (
@@ -374,7 +543,10 @@ function WebappShare(props: IWebappShareProps): JSX.Element {
               className="w-10 h-10 rounded-full bg-background-subtle"
               onClick={() => {
                 if (userId) {
-                  const link = Share.generateLink(userId, props.history[0].id);
+                  const link = Share.generateLink(
+                    userId,
+                    props.history[0].id
+                  );
                   ClipboardUtils.copy(link);
                   setCopiedLink(link);
                 } else {
